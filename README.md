@@ -100,7 +100,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- **Issues**: [GitHub Issues](https://github.com/PolymathicAI/AION/issues)
+- **Issues**: [GitHub Issues](https://github.com/PolymathicAI/walrus/issues)
 
 For other queries, please reach out to the corresponding author: mmccabe@flatironinstitute.org. 
 
