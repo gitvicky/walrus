@@ -335,10 +335,6 @@ def main(cfg: DictConfig):
         cfg.distribution.distribution_type.upper() != "LOCAL" and world_size > 1
     )
 
-    # Convert cfg to a string, do find/replace from "temporary_mppx_name" to "walrus", then convert back to DictConfig
-    cfg_str = OmegaConf.to_yaml(cfg)
-    cfg_str = cfg_str.replace("temporary_mppx_name", "walrus")
-    cfg = OmegaConf.create(cfg_str)
     # Since configure_experiment uses distributed logic, distribution must be set up first
     device_mesh = configure_distribution(cfg)
     (
