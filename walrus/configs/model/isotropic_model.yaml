@@ -1,0 +1,18 @@
+defaults:
+  - encoder: spacebag_and_vstride_encoder
+  - decoder: vstride_decoder
+  - processor: space_time_split
+  - norm_layer: rmsgroupnorm
+_target_: walrus.models.IsotropicModel
+hidden_dim: 768
+projection_dim: 96
+intermediate_dim: 192 #
+processor_blocks: 12
+drop_path: .05
+groups: 12
+max_d: 3
+causal_in_time: False
+include_d: [2, 3]
+override_dimensionality: 3 # Force it to treat all data as 3D
+jitter_patches: True
+gradient_checkpointing_freq: 0

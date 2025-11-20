@@ -1,0 +1,17 @@
+_target_: walrus.models.DPOTWrapper
+img_size: 256
+patch_size: 8
+in_channels: 11
+in_timesteps: 10
+out_timesteps: 1
+out_channels: 11
+normalize: False
+# use_ln: False
+embed_dim: 2048
+modes: 32
+depth: 27
+n_blocks: 8
+mlp_ratio: 4
+out_layer_dim: 128
+act: gelu
+n_cls: 1

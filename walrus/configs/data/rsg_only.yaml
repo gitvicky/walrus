@@ -1,0 +1,15 @@
+  well_base_path: /mnt/home/polymathic/ceph/the_well/datasets/
+  wandb_data_name: rsgonly
+  module_parameters:
+    _target_: data.MixedWellDataModule
+    batch_size: 1
+    n_steps_input: 3
+    n_steps_output: 1
+    min_dt_stride: 5
+    max_dt_stride: 5
+    max_samples: 2000
+    well_dataset_info:
+      convective_envelope_rsg:
+        include_filters: []
+        exclude_filters: []
+        normalization_path: logged_stats_stride_5.yaml

@@ -1,0 +1,43 @@
+well_base_path: /mnt/home/polymathic/ceph/WellFormattedExternalData/pdegym # Usually overrided by server
+wandb_data_name: "pdebench_full"
+module_parameters:
+  _target_: data.MixedWellDataModule
+  batch_size: 8
+  n_steps_input: 10
+  n_steps_output: 1
+  min_dt_stride: 1
+  max_dt_stride: 1
+  max_samples: 2000 # Time in fake epochs
+  well_dataset_info:
+    CNS2D_128_Rand:
+      include_filters: []
+      exclude_filters: []
+      path: /mnt/home/polymathic/ceph/WellFormattedExternalData/PDEBench/CNS2D_128_Rand
+    CNS2D_512_Rand:
+      include_filters: []
+      exclude_filters: []
+      path: /mnt/home/polymathic/ceph/WellFormattedExternalData/PDEBench/CNS2D_512_Rand
+    CNS2D_512_Turb:
+      include_filters: []
+      exclude_filters: []
+      path: /mnt/home/polymathic/ceph/WellFormattedExternalData/PDEBench/CNS2D_512_Turb
+    FitzhughNagumoDR:
+      include_filters: []
+      exclude_filters: []
+      path: /mnt/home/polymathic/ceph/WellFormattedExternalData/PDEBench/FitzhughNagumoDR
+    INS_PerodicForcing:
+      include_filters: []
+      exclude_filters: []
+      path: /mnt/home/polymathic/ceph/WellFormattedExternalData/PDEBench/INS_PerodicForcing
+    SWE_DamBreak:
+      include_filters: []
+      exclude_filters: []
+      path: /mnt/home/polymathic/ceph/WellFormattedExternalData/PDEBench/SWE_DamBreak
+    CNS3D_128_Rand:
+      include_filters: []
+      exclude_filters: []
+      path: /mnt/home/polymathic/ceph/WellFormattedExternalData/PDEBench/CNS3D_128_Rand
+    CNS3D_64_Turb:
+      include_filters: []
+      exclude_filters: []
+      path: /mnt/home/polymathic/ceph/WellFormattedExternalData/PDEBench/CNS3D_64_Turb

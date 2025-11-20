@@ -1,0 +1,21 @@
+defaults:
+  - field_index_map_override: bc_only_override
+  - transform: random_rotation90_train
+well_base_path: /mnt/gpuxl/polymathic/the_well/datasets/
+wandb_data_name: turbulence_gravity_cooling
+module_parameters:
+  _target_: walrus.data.MixedWellDataModule
+  batch_size: 8
+  n_steps_input: 10
+  n_steps_output: 1
+  min_dt_stride: 1
+  max_dt_stride: 1
+  max_samples: 2000
+  well_dataset_info:
+    turbulence_gravity_cooling:
+      include_filters: []
+      exclude_filters: []
+      normalization_path: "logged_stats.yaml"
+      field_transforms:
+        density: torch.log10
+        temperature: torch.log10

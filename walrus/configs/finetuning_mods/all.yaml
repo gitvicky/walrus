@@ -1,0 +1,2 @@
+learnable_rope: True
+rope_per_axis: True

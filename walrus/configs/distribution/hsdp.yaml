@@ -1,0 +1,2 @@
+distribution_type: hsdp
+local_size: 4 # Defaults to number of GPUs on node - only necessary to set for heterogeneous worlds.
