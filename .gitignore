@@ -73,6 +73,7 @@ vendor/
 .env
 .env.local
 .env.*.local
+.venv
 
 # Ignore sensitive or private information
 secrets.txt
