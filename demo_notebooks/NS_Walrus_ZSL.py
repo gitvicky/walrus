@@ -26,10 +26,10 @@ with h5py.File(hdf5_path, 'r') as f:
     # Load one trajectory for this example (you can loop over all trajectories)
     traj_idx = 0
     
-    # Load fields: velocity [Nt, Nx, Ny, 2], pressure [Nt, Nx, Ny], density [Nt, Nx, Ny]
+    # Load fields: velocity [Nt, Nx, Ny, 2], pressure [Nt, Nx, Ny]
+    # Note: density is not loaded as we're only modeling u, v, and p
     velocity = torch.tensor(f['t1_fields/velocity'][traj_idx], dtype=torch.float32)  # [Nt, Nx, Ny, 2]
     pressure = torch.tensor(f['t0_fields/pressure'][traj_idx], dtype=torch.float32)  # [Nt, Nx, Ny]
-    density = torch.tensor(f['t0_fields/density'][traj_idx], dtype=torch.float32)    # [Nt, Nx, Ny]
     
     # Boundary condition type
     bc_type_map = {"WALL": 0, "OPEN": 1, "PERIODIC": 2}
@@ -40,7 +40,6 @@ with h5py.File(hdf5_path, 'r') as f:
     print(f"Loaded Navier-Stokes data:")
     print(f"  Velocity shape: {velocity.shape}")
     print(f"  Pressure shape: {pressure.shape}")
-    print(f"  Density shape: {density.shape}")
     print(f"  Boundary conditions: {bc_x}, {bc_y}")
 
 # %% # =============================================================================
@@ -48,8 +47,8 @@ with h5py.File(hdf5_path, 'r') as f:
 # =============================================================================
 
 # Split into input and output timesteps
-T_in = 6    # Number of input timesteps
-T_out = 8  # Number of output timesteps to predict
+T_in = 4   # Number of input timesteps
+T_out = 20  # Number of output timesteps to predict
 
 # Extract velocity components
 u = velocity[..., 0]  # [Nt, Nx, Ny]
@@ -61,37 +60,36 @@ v = velocity[..., 1]  # [Nt, Nx, Ny]
 target_size = 128
 print(f"\nResizing from {Nx}x{Ny} to {target_size}x{target_size} (model requirement)")
 
-# Resize u, v, pressure, density using bilinear interpolation
+# Resize u, v, pressure using bilinear interpolation
 # Input shape for F.interpolate: [Nt, 1, Nx, Ny]
 u = F.interpolate(u.unsqueeze(1), size=(target_size, target_size), mode='bilinear', align_corners=False).squeeze(1)
 v = F.interpolate(v.unsqueeze(1), size=(target_size, target_size), mode='bilinear', align_corners=False).squeeze(1)
 pressure = F.interpolate(pressure.unsqueeze(1), size=(target_size, target_size), mode='bilinear', align_corners=False).squeeze(1)
-density = F.interpolate(density.unsqueeze(1), size=(target_size, target_size), mode='bilinear', align_corners=False).squeeze(1)
 
 # Update Nx, Ny
 Nx, Ny = target_size, target_size
-print(f"Resized shapes: u={u.shape}, v={v.shape}, pressure={pressure.shape}, density={density.shape}")
+print(f"Resized shapes: u={u.shape}, v={v.shape}, pressure={pressure.shape}")
 
 # For 2D simulations, we need to add velocity_z as padding (zero)
-# Stack: [velocity_x, velocity_y, velocity_z, pressure, density]
+# Stack: [velocity_x, velocity_y, velocity_z, pressure]
 
 # Create zero tensor for velocity_z padding
 velocity_z = torch.zeros_like(u)
 
-# Stack all fields: [Nt, Nx, Ny, 5]
-all_fields = torch.stack([u, v, velocity_z, pressure, density], dim=-1)
+# Stack all fields: [Nt, Nx, Ny, 4]
+all_fields = torch.stack([u, v, velocity_z, pressure], dim=-1)
 
 # Add depth dimension (D=1) for tensor format consistency
-all_fields = all_fields.unsqueeze(-2)  # [Nt, Nx, Ny, 1, 5]
+all_fields = all_fields.unsqueeze(-2)  # [Nt, Nx, Ny, 1, 4]
 
 # Split into input and output
 Nt_total = all_fields.shape[0]
-input_fields = all_fields[:T_in].unsqueeze(0)   # [1, T_in, Nx, Ny, 1, 5]
-output_fields = all_fields[T_in:T_in+T_out].unsqueeze(0)  # [1, T_out, Nx, Ny, 1, 5]
+input_fields = all_fields[:T_in].unsqueeze(0)   # [1, T_in, Nx, Ny, 1, 4]
+output_fields = all_fields[T_in:T_in+T_out].unsqueeze(0)  # [1, T_out, Nx, Ny, 1, 4]
 
 print(f"\nPrepared fields:")
-print(f"  Input shape: {input_fields.shape}  # [B=1, T_in=6, H={Nx}, W={Ny}, D=1, C=5]")
-print(f"  Output shape: {output_fields.shape}  # [B=1, T_out=10, H={Nx}, W={Ny}, D=1, C=5]")
+print(f"  Input shape: {input_fields.shape}  # [B=1, T_in=6, H={Nx}, W={Ny}, D=1, C=4]")
+print(f"  Output shape: {output_fields.shape}  # [B=1, T_out={T_out}, H={Nx}, W={Ny}, D=1, C=4]")
 
 # %%
 # =============================================================================
@@ -103,16 +101,15 @@ print(f"  Output shape: {output_fields.shape}  # [B=1, T_out=10, H={Nx}, W={Ny},
 # - velocity_y → index 5 (pretrained)
 # - velocity_z → index 6 (pretrained, used as padding)
 # - pressure → index 3 (pretrained)
-# - density → index 28 (pretrained)
 
-field_indices = torch.tensor([4, 5, 6, 3, 28])  # [velocity_x, velocity_y, velocity_z, pressure, density]
+field_indices = torch.tensor([4, 5, 6, 3])  # [velocity_x, velocity_y, velocity_z, pressure]
 
 # Padded field mask: True for real fields, False for padding
 # velocity_z is padding (False), all others are real (True)
-padded_field_mask = torch.tensor([True, True, False, True, True])
+padded_field_mask = torch.tensor([True, True, False, True])
 
 print(f"\nField mapping:")
-field_names_list = ['velocity_x', 'velocity_y', 'velocity_z (padding)', 'pressure', 'density']
+field_names_list = ['velocity_x', 'velocity_y', 'velocity_z (padding)', 'pressure']
 for i, (idx, name, is_real) in enumerate(zip(field_indices, field_names_list, padded_field_mask)):
     status = "real" if is_real else "padding"
     print(f"  Channel {i}: {name:30s} → embedding {idx:2d} ({status})")
@@ -125,12 +122,12 @@ for i, (idx, name, is_real) in enumerate(zip(field_indices, field_names_list, pa
 metadata = WellMetadata(
     dataset_name="navier_stokes_spectral",
     n_spatial_dims=3,  # Walrus expects 3D (we padded D=1)
-    
+
     # Field organization by rank:
-    # Rank 0 (scalars): pressure, density
+    # Rank 0 (scalars): pressure
     # Rank 1 (vectors): velocity_x, velocity_y, velocity_z
     field_names={
-        0: ['pressure', 'density'],
+        0: ['pressure'] ,
         1: ['velocity_x', 'velocity_y', 'velocity_z'],
         2: []
     },
@@ -202,7 +199,7 @@ field_to_index_map = config.data.field_index_map_override
 new_field_to_index_map = dict(field_to_index_map)
 
 # All our fields should already be in the pretrained model, but verify:
-required_indices = [4, 5, 6, 3, 28]  # velocity_x, velocity_y, velocity_z, pressure, density
+required_indices = [4, 5, 6, 3]  # velocity_x, velocity_y, velocity_z, pressure
 print(f"\nVerifying field indices are in pretrained model:")
 for idx in required_indices:
     field_name = [k for k, v in field_to_index_map.items() if v == idx]
@@ -350,7 +347,7 @@ with torch.no_grad():
         revin,
         navier_stokes_batch,
         formatter,
-        max_rollout_steps=T_out,
+        max_rollout_steps=20,
         device=device,
     )
     
@@ -362,7 +359,7 @@ with torch.no_grad():
     y_pred_real = y_pred[..., padded_field_mask]
     y_ref_real = y_ref[..., padded_field_mask]
 
-    real_field_names = ['velocity_x', 'velocity_y', 'pressure', 'density']
+    real_field_names = ['velocity_x', 'velocity_y', 'pressure']
 
     print(f"\n  Final shape (real fields only): {y_pred_real.shape}")
     print(f"  Fields: {real_field_names}")
@@ -501,11 +498,11 @@ print(f"\n✓ Saved comparison plot to: demo_notebooks/navier_stokes_comparison.
 # STEP 12: Temporal Evolution Plots
 # =============================================================================
 
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 fig.suptitle('Temporal Evolution of Prediction Errors', fontsize=16)
 
 for field_idx, field_name in enumerate(real_field_names):
-    ax = axes[field_idx // 2, field_idx % 2]
+    ax = axes[field_idx]
 
     # Compute error metrics over time
     mse_over_time = []
@@ -551,11 +548,11 @@ print(f"✓ Saved temporal error plot to: demo_notebooks/navier_stokes_temporal_
 # STEP 13: Statistical Distribution Comparison
 # =============================================================================
 
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 fig.suptitle('Statistical Distribution: Predictions vs Ground Truth', fontsize=16)
 
 for field_idx, field_name in enumerate(real_field_names):
-    ax = axes[field_idx // 2, field_idx % 2]
+    ax = axes[field_idx]
 
     # Flatten all timesteps
     pred_all = y_pred_real[0, :, :, :, 0, field_idx].cpu().numpy().flatten()
