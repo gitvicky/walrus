@@ -95,8 +95,8 @@ print("Preparing data in Walrus format")
 print("="*60)
 
 # Split into input and output timesteps
-T_in = 6    # Number of input timesteps
-T_out = 10  # Number of output timesteps to predict
+T_in = 5    # Number of input timesteps
+T_out = 20  # Number of output timesteps to predict
 
 # Extract velocity components
 u = velocity[..., 0]  # [Nt, Nx, Ny]
